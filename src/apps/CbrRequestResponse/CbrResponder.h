@@ -19,11 +19,15 @@
 #include <inet/transportlayer/contract/udp/UdpSocket.h>
 #include <inet/networklayer/common/L3AddressResolver.h>
 
-#include "CbrPacket_m.h"
+#include "CbrRequest_m.h"
+#include "CbrResponse_m.h"
 
-namespace simu5g {
+#include "nodes/mec/VirtualisationInfrastructureManager/VirtualisationInfrastructureManager.h"
+#include "stack/phy/layer/NRPhyUe.h"
 
-class CbrReceiver : public omnetpp::cSimpleModule
+using namespace simu5g;
+
+class CbrResponder : public omnetpp::cSimpleModule
 {
     inet::UdpSocket socket;
 
@@ -31,17 +35,32 @@ class CbrReceiver : public omnetpp::cSimpleModule
     int totFrames_;
     int recvBytes_;
 
+    int respSize_;
+
     bool mInit_;
 
-    inet::simtime_t lastPayloadTimestamp_;
+    int destPort_;
+    inet::L3Address destAddress_;
 
-    static omnetpp::simsignal_t cbrFrameLossSignal_;
-    static omnetpp::simsignal_t cbrFrameDelaySignal_;
-    static omnetpp::simsignal_t cbrJitterSignal_;
-    static omnetpp::simsignal_t cbrReceivedThroughtput_;
-    static omnetpp::simsignal_t cbrReceivedBytesSignal_;
+    bool enableVimComputing_;
 
-    omnetpp::simsignal_t cbrRcvdPkt_;
+    inet::Packet* respPacket_;
+    cMessage* processingTimer_;
+
+    static omnetpp::simsignal_t cbrReqFrameLossSignal_;
+    static omnetpp::simsignal_t cbrReqFrameDelaySignal_;
+    static omnetpp::simsignal_t cbrReqJitterSignal_;
+    static omnetpp::simsignal_t cbrReqReceivedThroughtput_;
+    static omnetpp::simsignal_t cbrReqReceivedBytesSignal_;
+
+    VirtualisationInfrastructureManager* vim;
+
+    bool enableOrchestration_;
+    NRPhyUe* nrPhy_;
+
+    omnetpp::cOutVector rt_stats_;
+
+    omnetpp::simsignal_t cbrReqRcvdPkt_;
 
   protected:
 
@@ -49,11 +68,10 @@ class CbrReceiver : public omnetpp::cSimpleModule
     void initialize(int stage) override;
     void handleMessage(omnetpp::cMessage *msg) override;
     virtual void finish() override;
-  public:
-    inet::simtime_t getLastPayloadTimestamp() { return lastPayloadTimestamp_; }
-};
 
-} //namespace
+  public:
+    unsigned int getCurrentgNB() { return  nrPhy_->getMasterId(); };
+};
 
 #endif
 
