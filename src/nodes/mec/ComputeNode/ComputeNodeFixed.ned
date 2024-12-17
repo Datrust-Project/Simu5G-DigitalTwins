@@ -15,12 +15,12 @@
 
 package simu5g.nodes.mec.ComputeNode;
 
-import simu5g.nodes.NR.NRUe;
+import inet.node.inet.StandardHost;
 
-module ComputedNodeMobile extends NRUe
+module ComputeNodeFixed extends StandardHost
 {
     submodules:
         computeNodeManager: ComputeNodeManager {
-            @display("p=108,64");
+            @display("p=124.19,824.17004");
         }
 }

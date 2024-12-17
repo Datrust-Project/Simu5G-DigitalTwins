@@ -36,6 +36,7 @@ class ComputeNodeManager : public cSimpleModule
   public:
     simtime_t compute(int nOps, unsigned int idDTapp);
     void registerApp(unsigned int idDTapp);
+    void registerApp(unsigned int idDTapp, unsigned int capacity);
 };
 
 } //namespace

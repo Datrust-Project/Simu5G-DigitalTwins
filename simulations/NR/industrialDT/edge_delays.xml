@@ -1,0 +1,5 @@
+<internetCloud symmetric="true">
+  <parameters name="good">
+    <traffic src="EdgeServer" dest="iUpf" delay="1ms+truncnormal(5ms,1ms)" datarate="uniform(100kbps,500kbps)" drop="uniform(0,1) &lt; uniform(0.01, 0.05)" />
+  </parameters>
+</internetCloud>

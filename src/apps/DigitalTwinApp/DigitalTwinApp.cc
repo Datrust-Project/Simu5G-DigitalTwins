@@ -9,7 +9,7 @@
 // and cannot be removed from it.
 //
 
-#include "../DigitalTwinApp/DigitalTwinApp.h"
+#include "DigitalTwinApp.h"
 
 namespace simu5g {
 Define_Module(DigitalTwinApp);
@@ -22,6 +22,12 @@ simsignal_t DigitalTwinApp::cbrReqJitterSignal_ = registerSignal("cbrReqJitterSi
 simsignal_t DigitalTwinApp::cbrReqReceivedThroughtput_ = registerSignal("cbrReqReceivedThroughtputSignal");
 simsignal_t DigitalTwinApp::cbrReqReceivedBytesSignal_ = registerSignal("cbrReqReceivedBytesSignal");
 simsignal_t DigitalTwinApp::AoIatDTSignal_ = registerSignal("AoIatDTSignal");
+simsignal_t DigitalTwinApp::dtComputeTimeSignal_ = registerSignal("dtComputeTimeSignal");
+
+simsignal_t DigitalTwinApp::dtSampleReliabilitySignal_ = registerSignal("dtSampleReliabilitySignal");
+simsignal_t DigitalTwinApp::dtReliabilitySignal_ = registerSignal("dtReliabilitySignal");
+simsignal_t DigitalTwinApp::dtTimelinessSignal_ = registerSignal("dtTimelinessSignal");
+
 
 DigitalTwinApp::DigitalTwinApp()
 {
@@ -41,6 +47,9 @@ void DigitalTwinApp::initialize(int stage)
         respSize_ = par("responseSize");
         enableVimComputing_ = false;
         activeSubscriber_ = false;
+        expectedSamplesPerPeriod_ = par("expectedSamplesPerPeriod");
+        targetTimeliness_ = par("targetTimeliness");
+        targetReliability_ = par("targetReliability");
 
         rt_stats_.setName("processingTime");
         EV << "DigitalTwinApp::initialize - initializing DT app having ID=" << idDTapp_ << endl;
@@ -62,7 +71,7 @@ void DigitalTwinApp::initialize(int stage)
             if( enableVimComputing_ && par("computingType").intValue() ==  0 )
             {
                 computeNodeManager_ = check_and_cast<ComputeNodeManager*>(getParentModule()->getSubmodule("computeNodeManager"));
-                computeNodeManager_->registerApp(idDTapp);
+                computeNodeManager_->registerApp(idDTapp_);
             }
 
             processingTimer_  = new cMessage("computeMsg");
@@ -70,9 +79,9 @@ void DigitalTwinApp::initialize(int stage)
             std::cout << "DigitalTwinApp::handleMessage - " << par("monitoringDT").stringValue() << ", index: " << par("monitoringDTindex").intValue() << endl;
             int index = par("monitoringDTindex");
             if( index != -1 )
-                monitoringDT_ = check_and_cast<CbrReceiver*>(getParentModule()->getSubmodule(par("monitoringDT").stringValue(),index));
+                monitoringDT_ = check_and_cast<MonitoringDT*>(getParentModule()->getSubmodule(par("monitoringDT").stringValue(),index));
             else
-                monitoringDT_ = check_and_cast<CbrReceiver*>(getParentModule()->getSubmodule(par("monitoringDT").stringValue()));
+                monitoringDT_ = check_and_cast<MonitoringDT*>(getParentModule()->getSubmodule(par("monitoringDT").stringValue()));
 
             enablePeriodicUpdateGeneration_ = par("enablePeriodicUpdateGeneration");
             if(enablePeriodicUpdateGeneration_)
@@ -98,54 +107,27 @@ void DigitalTwinApp::handleMessage(cMessage *msg)
         }
         else if( !strcmp(msg->getName(), "generateUpdateMsg" ) )
         {
+            /* TODO handle concurrency between two consecutive updates
+             *
+             */
             EV << "DigitalTwinApp::handleMessage - update-timer triggered.";
             if( !activeSubscriber_ )
             {
                 EV << " No active subscriber. " << endl;
                 return;
             }
+            EV << " Active subscriber, generating an update." << endl;
             simtime_t processingTime = generateUpdate(0, simTime());
             scheduleAfter(updateGenerationPeriod_, generateUpdateTimer_);
-            cMessage* processingTimer = new cMessage("computeMsg");
-            scheduleAfter(processingTime, processingTimer);
-            EV << " Active subscriber, generating an update." << endl;
+//            cMessage* processingTimer = new cMessage("computeMsg");
+            scheduleAfter(processingTime, processingTimer_);
         }
     }
+    // Handling subscription from a DT client
     else if( !strcmp(msg->getName(), "subscription") )
     {
         EV << "DigitalTwinApp::handleMessage - received a subscription request " << endl;
         activeSubscriber_ = true;
-    }
-    else
-    {
-        Packet* pPacket = check_and_cast<Packet*>(msg);
-        auto cbrHeader = pPacket->popAtFront<CbrRequest>();
-
-        numReceived_++;
-        totFrames_ = cbrHeader->getNframes(); // XXX this value can be written just once
-        int pktSize = (int)cbrHeader->getPayloadSize();
-
-        // just to make sure we do not update recvBytes AND we avoid dividing by 0
-        if( simTime() > getSimulation()->getWarmupPeriod() )
-        {
-            recvBytes_ += pktSize;
-            emit( cbrReqReceivedBytesSignal_ , pktSize );
-        }
-
-        simtime_t delay = simTime()-cbrHeader->getPayloadTimestamp();
-        emit(cbrReqFrameDelaySignal_,delay );
-
-        EV << "DigitalTwinApp::handleMessage - Packet received: FRAME[" << cbrHeader->getIDframe() << "/" << cbrHeader->getNframes() << "] with delay["<< delay << "]" << endl;
-
-        emit(cbrReqRcvdPkt_, (long)cbrHeader->getIDframe());
-
-        simtime_t processingTime = generateUpdate((int)cbrHeader->getIDframe(),cbrHeader->getPayloadTimestamp());
-
-        EV << "DigitalTwinApp::handleMessage - scheduling response in " << processingTime << " seconds." << endl;
-        cMessage* processingTimer  = new cMessage("computeMsg");
-        scheduleAfter(processingTime, processingTimer);
-
-        delete msg;
     }
 }
 
@@ -179,13 +161,44 @@ simtime_t DigitalTwinApp::generateUpdate( int idFrame , simtime_t timestamp )
     cbr->setPayloadSize(respSize_);
     cbr->setChunkLength(B(respSize_));
 
-    simtime_t aoiConsidered = NOW - monitoringDT_->getLastPayloadTimestamp();
-    emit(AoIatDTSignal_,aoiConsidered);
-    cbr->setAoiConsidered(aoiConsidered);
-    //cbr->addTag<CreationTimeTag>()->setCreationTime(simTime());
+    // retrieve samples from the monitoring DT
+    simtime_t timestampConsidered = monitoringDT_->getLastPayloadTimestamp();
+    int numSamples = monitoringDT_->getNumSamples();
+    monitoringDT_->flushSamples();
+
+    EV << simTime() << " - DigitalTwinApp::generateUpdate - reading " << numSamples << "/" << expectedSamplesPerPeriod_ << " samples, having a timestamp of " << timestampConsidered << endl;
+    // update statistics and Entanglement information
+    // compare the age of the first received sample against the time when the update will be completed
+    // in other words, we are evaluating the AoI the sample will have when the computing of the status update is completed
+
+    EV << "\t " << simTime() << " + " << processingTime << " - " << timestampConsidered << " = " << simTime()+processingTime - timestampConsidered ;
+    if(simTime()+processingTime - timestampConsidered <= targetTimeliness_)
+    {
+        emit(dtTimelinessSignal_,1);
+        EV << " <= ";
+    }
+    else
+    {
+        emit(dtTimelinessSignal_,0);
+        EV << " > ";
+    }
+
+    EV << targetTimeliness_ << endl;
+
+    double samplesFraction = double(numSamples) / expectedSamplesPerPeriod_;
+    emit(dtSampleReliabilitySignal_ , samplesFraction);
+
+    if( samplesFraction >= targetReliability_ )
+        emit(dtReliabilitySignal_,1);
+    else
+        emit(dtReliabilitySignal_,0);
+
+    emit(AoIatDTSignal_,timestampConsidered);
+    emit(dtComputeTimeSignal_,processingTime);
+    cbr->setAoiConsidered(timestampConsidered);
+
     respPacket_->insertAtBack(cbr);
 
-    //XXX consider issuing a Timer here
     return processingTime;
 }
 

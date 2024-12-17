@@ -24,7 +24,7 @@
 
 #include "nodes/mec/VirtualisationInfrastructureManager/VirtualisationInfrastructureManager.h"
 #include "stack/phy/layer/NRPhyUe.h"
-#include "apps/cbr/CbrReceiver.h"
+#include "MonitoringDT.h"
 
 #include "nodes/mec/ComputeNode/ComputeNodeManager.h"
 
@@ -58,7 +58,11 @@ class DigitalTwinApp : public omnetpp::cSimpleModule
     bool enablePeriodicUpdateGeneration_;
     simtime_t updateGenerationPeriod_;
 
-    CbrReceiver * monitoringDT_;
+    int expectedSamplesPerPeriod_;
+    simtime_t targetTimeliness_;
+    double targetReliability_;
+
+    MonitoringDT * monitoringDT_;
     bool activeSubscriber_;
 
     static omnetpp::simsignal_t cbrReqFrameLossSignal_;
@@ -67,6 +71,11 @@ class DigitalTwinApp : public omnetpp::cSimpleModule
     static omnetpp::simsignal_t cbrReqReceivedThroughtput_;
     static omnetpp::simsignal_t cbrReqReceivedBytesSignal_;
     static omnetpp::simsignal_t AoIatDTSignal_;
+    static omnetpp::simsignal_t dtComputeTimeSignal_;
+
+    static omnetpp::simsignal_t dtSampleReliabilitySignal_;
+    static omnetpp::simsignal_t dtReliabilitySignal_;
+    static omnetpp::simsignal_t dtTimelinessSignal_;
 
 
     ComputeNodeManager* computeNodeManager_;

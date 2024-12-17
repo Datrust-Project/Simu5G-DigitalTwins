@@ -13,6 +13,7 @@ import inet.networklayer.configurator.ipv4.Ipv4NetworkConfigurator;
 import inet.networklayer.ipv4.RoutingTableRecorder;
 import inet.node.ethernet.Eth10G;
 import inet.node.ethernet.EthernetSwitch;
+import inet.node.internetcloud.InternetCloud;
 import ned.IdealChannel;
 import simu5g.nodes.mec.ComputeNode.ComputeNodeMobile;
 import simu5g.nodes.mec.ComputeNode.ComputeNodeFixed;
@@ -28,13 +29,13 @@ import inet.node.inet.Router;
 import inet.node.inet.StandardHost;
 
 
-network industrial_network_custom_mec
+network scalable_industrial_network
 {
     parameters:
         @display("i=block/network2;bgb=1018.93396,615.24396;bgi=background/pisa");
 
-        int numUes = default(0);
-        int numExtremeEdgeResources = default(0);
+        int numPAs = default(0);
+        int numLocalDTs = default(0);
 
         double playgroundSizeX @unit(m); // x size of the area the nodes are in (in meters)
         double playgroundSizeY @unit(m); // y size of the area the nodes are in (in meters)
@@ -68,28 +69,29 @@ network industrial_network_custom_mec
         CloudServer: ComputeNodeFixed {
             @display("p=743.505,83.0375;is=n;i=device/router");
         }
-        router: Router {
+        cloud_router: InternetCloud {
             @display("p=743.505,249.1125;i=misc/cloud");
         }
 
-
-        PA: NRUe {
-            @display("p=52.3775,387.0825;i=block/cogwheel");
+        PA[numPAs]: NRUe {
+            @display("p=89.425,429.24;i=block/cogwheel");
         }
-        localDTnode: ComputeNodeMobile {
-            @display("p=186.515,387.0825;i=old/telnet");
-        }
-        HumanOperator: NRUe {
-            @display("p=190.3475,514.8325;i=misc/person3");
+        localDTnode[numLocalDTs]: ComputeNodeMobile {
+            @display("p=223.5625,429.24;i=old/telnet");
         }
         EdgeServer: ComputeNodeFixed {
             @display("p=352.59,83.0375");
         }
+
+    //        edge_router: InternetCloud {
+    //            @display("p=537.8275,68.985;i=misc/cloud");
+    //        }
     connections allowunconnected:
         upf.pppg++ <--> Eth10G <--> iUpf.pppg++;
         iUpf.pppg++ <--> Eth10G <--> gNodeB1.ppp;
-        CloudServer.pppg++ <--> Eth10G <--> router.pppg++;
-        router.pppg++ <--> Eth10G <--> upf.filterGate;
-        EdgeServer.pppg++ <--> Eth10G <--> iUpf.filterGate;
-        EdgeServer.pppg++ <--> Eth10G <--> router.pppg++;
+        CloudServer.pppg++ <--> Eth10G <--> cloud_router.pppg++;
+        cloud_router.pppg++ <--> Eth10G <--> upf.filterGate;
+        //        EdgeServer.pppg++ <--> Eth10G <--> edge_router.pppg++;
+        //        iUpf.filterGate <--> Eth10G <--> edge_router.pppg++;
+        EdgeServer.pppg++ <--> Eth10G <--> cloud_router.pppg++;
 }
