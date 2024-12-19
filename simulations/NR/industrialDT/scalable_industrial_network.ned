@@ -36,6 +36,8 @@ network scalable_industrial_network
 
         int numPAs = default(0);
         int numLocalDTs = default(0);
+        int numFixedDTs = default(0);
+        int numFixedPAs = default(0);        
 
         double playgroundSizeX @unit(m); // x size of the area the nodes are in (in meters)
         double playgroundSizeY @unit(m); // y size of the area the nodes are in (in meters)
@@ -74,15 +76,24 @@ network scalable_industrial_network
         }
 
         PA[numPAs]: NRUe {
-            @display("p=89.425,429.24;i=block/cogwheel");
+            @display("p=86.87,387.0825;i=block/cogwheel");
         }
         localDTnode[numLocalDTs]: ComputeNodeMobile {
-            @display("p=223.5625,429.24;i=old/telnet");
+            @display("p=196.735,387.0825;i=old/telnet");
         }
         EdgeServer: ComputeNodeFixed {
             @display("p=352.59,83.0375");
         }
+        fixedPA[numFixedPAs]: StandardHost {
+            @display("p=431.795,518.665");
+        }
+        fixedDT[numFixedDTs]: ComputeNodeFixed {
+            @display("p=130.30501,513.555");
+        }
 
+        local_router: InternetCloud {
+            @display("p=284.8825,513.555;i=misc/cloud");
+        }
     //        edge_router: InternetCloud {
     //            @display("p=537.8275,68.985;i=misc/cloud");
     //        }
@@ -94,4 +105,16 @@ network scalable_industrial_network
         //        EdgeServer.pppg++ <--> Eth10G <--> edge_router.pppg++;
         //        iUpf.filterGate <--> Eth10G <--> edge_router.pppg++;
         EdgeServer.pppg++ <--> Eth10G <--> cloud_router.pppg++;
+        
+        for i=0..numFixedDTs-1 
+        {
+            fixedDT[i].ethg++ <--> Eth10G <--> local_router.ethg++;
+        }
+        
+        for i=0..numFixedPAs-1 
+        {
+            fixedPA[i].ethg++ <--> Eth10G <--> local_router.ethg++;
+        }
+        
+        local_router.ethg++ <--> Eth10G <--> cloud_router.ethg++;
 }

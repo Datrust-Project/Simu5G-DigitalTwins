@@ -4,6 +4,11 @@
     <traffic src="EdgeServer" dest="upf" delay="uniform(23ms,27ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
     <traffic src="CloudServer" dest="upf" delay="uniform(80ms,120ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
     
+    <traffic src="CloudServer" dest="fixedDT[*]" delay="uniform(80ms,120ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+    <traffic src="cloud_router" dest="fixedDT[*]" delay="uniform(80ms,120ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+    <traffic src="CloudServer" dest="local_router" delay="uniform(80ms,120ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+    <traffic src="EdgeServer" dest="local_router" delay="uniform(23ms,27ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+    
 <!--     <traffic src="**" dest="**" delay="10ms+truncnormal(100ms,20ms)" datarate="uniform(100kbps,500kbps)" drop="uniform(0,1) &lt; uniform(0.01, 0.05)" /> -->
   </parameters>
 </internetCloud>

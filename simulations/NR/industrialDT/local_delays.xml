@@ -1,0 +1,6 @@
+<internetCloud symmetric="true">
+  <parameters name="good">
+    <traffic src="fixedPA[*]" dest="fixedDT[*]" delay="uniform(4ms,6ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+    <traffic src="cloud_router" dest="fixedDT[*]" delay="uniform(4ms,6ms)" datarate="uniform(1Gbps,1.5Gbps)" drop="false" />
+  </parameters>
+</internetCloud>
