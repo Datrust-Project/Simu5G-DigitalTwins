@@ -89,7 +89,7 @@ void DigitalTwinApp::initialize(int stage)
                 EV << "DigitalTwinApp::initialize - enabling generation of periodic updates" << endl;
                 generateUpdateTimer_ = new cMessage("generateUpdateMsg");
                 updateGenerationPeriod_ = par("updateGenerationPeriod");
-                scheduleAfter(simTime()+updateGenerationPeriod_, generateUpdateTimer_);
+                scheduleAfter(simTime()+par("startTime"), generateUpdateTimer_);
             }
         }
     }

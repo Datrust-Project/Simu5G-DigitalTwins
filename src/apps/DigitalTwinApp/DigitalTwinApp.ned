@@ -22,7 +22,7 @@ simple DigitalTwinApp like IApp
         int destPort = default(3000);
         string destAddress;
 
-        int responseSize = default(40);
+        int responseSize = default(40);                
 
         bool enableVimComputing @mutable = default(false);
         double serviceComplexity @mutable = default(1); // expressed in MIPs (the actual number of instructions will be rounded to the closest integer)
@@ -36,6 +36,7 @@ simple DigitalTwinApp like IApp
         
         bool enablePeriodicUpdateGeneration = default(false);
         double updateGenerationPeriod @unit("s") = default(1s);
+        double startTime @unit("s") = default(0s);
         
         int expectedSamplesPerPeriod = default(1);
         double targetTimeliness @unit("s") = default(1s);
