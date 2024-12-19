@@ -32,7 +32,7 @@ void ComputeNodeManager::handleMessage(cMessage *msg)
 
 void ComputeNodeManager::registerApp(unsigned int idDTapp)
 {
-    int capacity = 1000000;
+    int capacity = par("defaultPerAppCapacity").doubleValue()*1000000;
     EV << simTime() << " - ComputeNodeManager::registerApp - registering a capacity of " << capacity << " operations per second to app " << idDTapp << endl;
     perAppCapacity_[idDTapp] = capacity;
 }
@@ -52,6 +52,8 @@ simtime_t ComputeNodeManager::compute(int nOps , unsigned int idDTapp )
         throw cRuntimeError("application %d is not registered",idDTapp);
     }
     simtime_t computeTime = double(nOps)/perAppCapacity_[idDTapp];
+
+    computeTime = computeTime + (computeTime *( uniform(0, 0.1)-0.05) );
     EV << "\t available capacity is=" << perAppCapacity_[idDTapp] << endl;
     EV << "\t expected compute time is "<< computeTime << endl;
 

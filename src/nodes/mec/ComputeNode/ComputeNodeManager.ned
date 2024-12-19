@@ -20,5 +20,6 @@ package simu5g.nodes.mec.ComputeNode;
 //
 simple ComputeNodeManager
 {
+   	double defaultPerAppCapacity = default(1); // expressed in Mops per second
     @display("i=block/transport");
 }

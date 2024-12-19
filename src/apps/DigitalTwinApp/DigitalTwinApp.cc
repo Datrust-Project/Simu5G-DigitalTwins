@@ -193,7 +193,7 @@ simtime_t DigitalTwinApp::generateUpdate( int idFrame , simtime_t timestamp )
     else
         emit(dtReliabilitySignal_,0);
 
-    emit(AoIatDTSignal_,timestampConsidered);
+    emit(AoIatDTSignal_,simTime()+processingTime - timestampConsidered);
     emit(dtComputeTimeSignal_,processingTime);
     cbr->setAoiConsidered(timestampConsidered);
 
