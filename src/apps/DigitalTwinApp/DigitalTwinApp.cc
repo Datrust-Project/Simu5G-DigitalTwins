@@ -102,6 +102,7 @@ void DigitalTwinApp::handleMessage(cMessage *msg)
         if( !strcmp(msg->getName(), "computeMsg" ) )
         {
             EV << "DigitalTwinApp::handleMessage - update ready. Sending it." << endl;
+            delete(msg);
             socket.sendTo(respPacket_, destAddress_, destPort_);
             return;
         }
@@ -119,8 +120,8 @@ void DigitalTwinApp::handleMessage(cMessage *msg)
             EV << " Active subscriber, generating an update." << endl;
             simtime_t processingTime = generateUpdate(0, simTime());
             scheduleAfter(updateGenerationPeriod_, generateUpdateTimer_);
-//            cMessage* processingTimer = new cMessage("computeMsg");
-            scheduleAfter(processingTime, processingTimer_);
+            cMessage* processingTimer = new cMessage("computeMsg");
+            scheduleAfter(processingTime, processingTimer);
         }
     }
     // Handling subscription from a DT client
@@ -128,6 +129,7 @@ void DigitalTwinApp::handleMessage(cMessage *msg)
     {
         EV << "DigitalTwinApp::handleMessage - received a subscription request " << endl;
         activeSubscriber_ = true;
+        delete(msg);
     }
 }
 
